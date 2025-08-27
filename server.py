@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import lib
 import mqtt_client
+import web
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from lib import (write_log, get_db_connection, execute_sql_query, prepare_sql_string, is_integer, save_config, save_config_key,
@@ -27,7 +28,8 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     DT_FORMAT = "%Y-%m-%d %H:%M:%S"
     PROC_ARCHLOG = "archlog"
     PROC_PING = "ping"
-    PROC_MQTT = "ping"
+    PROC_MQTT = "mqtt_last"
+    PROC_WEB = "web"
     PROC_PINGSERVER = "pingserver"
     PROC_PROCUPDATEALL = "procupdateall"
     PROC_REGISTER = "register"
@@ -38,6 +40,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         PROC_ARCHLOG,
         PROC_PING,
         PROC_MQTT,
+        PROC_WEB,
         PROC_PINGSERVER,
         PROC_PROCUPDATEALL,
         PROC_REGISTER,
@@ -69,6 +72,15 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_answer(200, {"error_code": 1, "message": "no data yet"})
         else:
             self.send_answer(200, {"error_code": 0, "message": mqtt_client.last_message})
+    
+    def is_web(self, path_url: str) -> bool:
+        url_prefix = lib.config["settings"]["url_prefix"]
+        if path_url.lower().startswith(url_prefix + self.PROC_WEB):
+            print("МЫ ТУТА")
+            web.router(path_url)
+            return true
+        else:
+            return false
 
     def send_answer(self, status: int, js: dict):
         answer = json.dumps(js, indent=4)
@@ -456,8 +468,6 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             path_url = path_url[len(url_prefix):]
         path_url.strip("/")
         parts = path_url.split("/")
-        write_log("parts")
-        write_log(parts)
 
         return None if len(parts) != 2 else parts[0].lower()
 
@@ -749,19 +759,13 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_answer(200, {"error_code": 0})
 
     def process_query(self, params: dict, path: str):
-        write_log("начало")
-
         url_path = path.strip().lower()
-        write_log("url_path")
-        write_log(url_path)
         url_prefix = lib.config["settings"]["url_prefix"]
         if not url_path.startswith(url_prefix):
             write_log("Запрос %s не начинается с нужного префикса." % url_path)
             return
         projects = self.get_projects(server_path)
         project_name = self.parse_project_name(url_path)
-        write_log("project_name")
-        write_log(project_name)
         procedure_name = self.parse_procedure_name(url_path)
         # команда /api/v2_1/sc/ping
         if self.is_global_ping(url_path):
@@ -770,6 +774,14 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         if url_path == "/api/v2_1/sc/mqtt_last":
             write_log("mQtT")
             self.mqtt_last(project_name)
+            return
+        # if url_path == "/api/v2_1/sc/web":
+        #     write_log("web")
+        #     self.web(project_name)
+        #     return
+        if self.is_web(url_path):
+            write_log("web")
+            self.web(project_name)
             return
         if self.is_global_archlog(url_path):
             if "server_secret" not in params or params["server_secret"] != lib.config["settings"]["secret"]:
@@ -783,10 +795,6 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             return
         if project_name not in projects:
             write_log("Проекта %s нет в списке доступных проектов." % project_name)
-            return
-        if project_name == "mqtt_last":
-            write_log("mQtT")
-            self.mqtt_last(project_name)
             return
         if procedure_name in self.service_procedures:
             write_log("URL: %s" % url_path, project_name)

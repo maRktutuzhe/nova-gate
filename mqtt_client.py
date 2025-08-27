@@ -9,7 +9,7 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     global last_message
     last_message = msg.payload.decode()
-    print("MQTT message received:", last_message)
+    # print("MQTT message received:", last_message)
 
 def start_mqtt():
     client = mqtt.Client()

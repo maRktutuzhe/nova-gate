@@ -11,3 +11,4 @@ pytz==2025.1
 typing==3.7.4.3
 uuid==1.30
 zope.interface==7.2
+paho-mqtt==2.1.0
