@@ -76,11 +76,9 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     def is_web(self, path_url: str) -> bool:
         url_prefix = lib.config["settings"]["url_prefix"]
         if path_url.lower().startswith(url_prefix + self.PROC_WEB):
-            print("МЫ ТУТА")
-            web.router(path_url)
-            return true
+            return True
         else:
-            return false
+            return False
 
     def send_answer(self, status: int, js: dict):
         answer = json.dumps(js, indent=4)
@@ -775,13 +773,8 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             write_log("mQtT")
             self.mqtt_last(project_name)
             return
-        # if url_path == "/api/v2_1/sc/web":
-        #     write_log("web")
-        #     self.web(project_name)
-        #     return
         if self.is_web(url_path):
-            write_log("web")
-            self.web(project_name)
+            web.router(self, path, params)
             return
         if self.is_global_archlog(url_path):
             if "server_secret" not in params or params["server_secret"] != lib.config["settings"]["secret"]:

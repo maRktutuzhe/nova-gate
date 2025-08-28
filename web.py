@@ -1,4 +1,5 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import json
 
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     def send_answer(self, status: int, js: dict):
@@ -8,11 +9,26 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(answer.encode('utf-8'))
 
-    def router(url):
-        part1, part2 = url.split('web/')
-        print('part2', part2)
-        print("ПОПАЛИ КУДА НАДО")
-        # result = {"error_code": 0, "message": part2}
-        # response_helper.send_answer( 200, result)
-        self.send_answer(200, {"error_code": 0, "message": part2})
+def router(handler: MyHTTPRequestHandler, url: str, params):
+
+
+    if "web/" in url:
+        _, part2 = url.split("web/", 1)
+        print("part2", part2)
+        if part2 == 'login':
+            login(handler, params)
+        else:
+            handler.send_answer(200, {"error_code": 0, "message": part2})
+    else:
+        handler.send_answer(404, {"error_code": 1, "message": "not found"})
     
+def login(handler: MyHTTPRequestHandler, params):
+
+    print('params', params)
+
+    if params["login"] == "user1" and params["pass"] == "pass1":
+        user_id = 1
+    elif params["login"] == "user2" and params["pass"] == "pass2":
+        user_id = 2
+    
+    handler.send_answer(200, {"error_code": 0, "message": user_id})
