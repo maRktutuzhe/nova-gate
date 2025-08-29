@@ -80,10 +80,13 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         else:
             return False
 
-    def send_answer(self, status: int, js: dict):
-        answer = json.dumps(js, indent=4)
+    def send_answer(self, status: int, js: dict, cookies=None):
+        answer = json.dumps(js, indent=4, ensure_ascii=False)
         self.send_response(status)
         self.send_header(keyword='Content-Type', value='application/json;charset=utf-8')
+        if cookies:
+            for cookie in cookies:
+                self.send_header('Set-Cookie', cookie)
         self.end_headers()
         self.wfile.write(answer.encode('utf-8'))
 
