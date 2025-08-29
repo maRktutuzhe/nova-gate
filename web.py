@@ -5,11 +5,12 @@ import datetime
 import os
 from typing import Dict, Any
 from http import cookies
+from http.cookies import SimpleCookie
 
 SECRET = "supersecretkey"
 REFRESH_SECRET = "superrefreshkey"
 
-ACCESS_EXPIRE_MINUTES = 15
+ACCESS_EXPIRE_MINUTES = 2
 REFRESH_EXPIRE_DAYS = 7
 
 def router(handler, url: str, params):
@@ -21,7 +22,7 @@ def router(handler, url: str, params):
         if part2 == 'login':
             login(handler, params)
         elif part2 == 'getData':
-            protected(handler, params, handler.headers.get("Authorization"))
+            protected(handler, params)
         else:
             handler.send_answer(200, {"error_code": 0, "message": 'не существует пути' + part2})
     else:
@@ -36,12 +37,15 @@ def login(handler, params):
         user_id = 1
         access = generate_access_token(user_id)
         refresh = generate_refresh_token(user_id)
+
+
+        check_file(user_id, refresh)
+
         handler.send_answer(
             status=200,
             js={
                 "error_code": 0,
                 "user_name": "Name1",
-                "access_token": access,
                 "devices": ['dev1', 'dev2']
             },
             cookies=[
@@ -58,7 +62,6 @@ def login(handler, params):
             js={
                 "error_code": 0,
                 "user_name": "Name2",
-                "access_token": access,
                 "devices": ['dev3', 'dev4']
             },
             cookies=[
@@ -69,22 +72,43 @@ def login(handler, params):
     else:
         handler.send_answer(401, {"error_code": 2, "message": "invalid credentials"})
 
+def check_file(user_id, refresh):
+    data = {
+        "user_id": user_id,
+        "refresh": refresh,
+    }
+    loaded_data = {}
+
+    if os.path.exists(f"users/{user_id}.json"):
+        with open(f"users/{user_id}.json", 'r', encoding='utf-8') as file:
+            loaded_data = json.load(file)
+            loaded_data['refresh'] = data['refresh']
+        with open(f"users/{user_id}.json", 'w', encoding='utf-8') as file:
+            json.dump(loaded_data, file, ensure_ascii=False, indent=4)
+    else:
+        with open(f"users/{user_id}.json", 'a', encoding='utf-8') as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
+    
+
+
 def generate_access_token(user_id: int):
+    expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=ACCESS_EXPIRE_MINUTES)
     payload = {
         "user_id": user_id,
         # "username": "admin",
         # "role": "administrator",
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=ACCESS_EXPIRE_MINUTES),
-        "iat": datetime.datetime.utcnow(),
+        "exp": int(expire.timestamp()),
+        "iat": int(datetime.datetime.now(datetime.timezone.utc).timestamp()),
         "type": "access"
     }
     return jwt.encode(payload, SECRET, algorithm="HS256")
 
 def generate_refresh_token(user_id: int):
+    expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=REFRESH_EXPIRE_DAYS)
     payload = {
         "user_id": user_id,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=REFRESH_EXPIRE_DAYS),
-        "iat": datetime.datetime.utcnow(),
+        "exp": int(expire.timestamp()),
+        "iat": int(datetime.datetime.now(datetime.timezone.utc).timestamp()),
         "type": "refresh"
     }
     return jwt.encode(payload, REFRESH_SECRET, algorithm="HS256")
@@ -99,13 +123,24 @@ def verify_token(token: str, secret: str):
         return None
 
 
-def protected(handler, params, auth_header: str):
-    if not auth_header or not auth_header.startswith("Bearer "):
+def protected(handler, params):
+    cookie_header = handler.headers.get("Cookie")
+    token = None
+    if cookie_header:
+        cookies = SimpleCookie()
+        print('cookies', cookies)
+        cookies.load(cookie_header)
+        if "access_token" in cookies:
+            token = cookies["access_token"].value
+            print('token', token)
+            
+
+    if not token:
         handler.send_answer(401, {"message": "missing token"})
         return
 
-    token = auth_header.split(" ")[1]
     payload = verify_token(token, SECRET)
+    print('payload', payload)
     if not payload or payload.get("type") != "access":
         handler.send_answer(401, {"message": "invalid or expired token"})
         return
