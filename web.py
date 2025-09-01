@@ -6,12 +6,27 @@ import os
 from typing import Dict, Any
 from http import cookies
 from http.cookies import SimpleCookie
+import mqtt_client
+
+
 
 SECRET = "supersecretkey"
 REFRESH_SECRET = "superrefreshkey"
 
 ACCESS_EXPIRE_MINUTES = 2
 REFRESH_EXPIRE_DAYS = 7
+
+fileData = {
+    'user_id': 0,
+    'refresh': '',
+    'mqtt_login': '',
+    'mqtt_pass': ''
+}
+
+user = {
+    'login': '',
+    'password': ''
+}
 
 def router(handler, url: str, params):
 
@@ -21,8 +36,11 @@ def router(handler, url: str, params):
         print("part2", part2)
         if part2 == 'login':
             login(handler, params)
+            start_mqtt(handler, params)
         elif part2 == 'getData':
             protected(handler, params)
+        elif part2 == 'get_mqtt':
+            get_mqtt(handler, params)
         else:
             handler.send_answer(200, {"error_code": 0, "message": 'не существует пути' + part2})
     else:
@@ -57,6 +75,8 @@ def login(handler, params):
         user_id = 2
         access = generate_access_token(user_id)
         refresh = generate_refresh_token(user_id)
+        check_file(user_id, refresh)
+
         handler.send_answer(
             status=200,
             js={
@@ -145,4 +165,44 @@ def protected(handler, params):
         handler.send_answer(401, {"message": "invalid or expired token"})
         return
 
-    handler.send_answer(200, {"message": f"Hello user {payload['user_id']}!"})
+    handler.send_answer(200, {"error_code": 0, "message": f"Hello user {payload['user_id']}!"})
+
+def start_mqtt(handler, params):
+
+    get_pass(handler, params)
+    mqtt_client.start_mqtt(user)
+
+    handler.send_answer(200, {"error_code": 0, "message": 'mqtt start!'})
+    
+    
+    
+def get_pass(handler, params):
+    cookie_header = handler.headers.get("Cookie")
+    token = None
+    if cookie_header:
+        cookies = SimpleCookie()
+        print('cookies', cookies)
+        cookies.load(cookie_header)
+        if "access_token" in cookies:
+            token = cookies["access_token"].value
+            print('token', token)
+            
+
+    if not token:
+        handler.send_answer(401, {"message": "missing token"})
+        return
+
+    payload = verify_token(token, SECRET)
+    print('payloa', payload)
+    if not payload or payload.get("type") != "access":
+        handler.send_answer(401, {"message": "invalid or expired token"})
+        return
+
+    if os.path.exists(f"users/{payload['user_id']}.json"):
+        with open(f"users/{payload['user_id']}.json", 'r', encoding='utf-8') as file:
+            loaded_data = json.load(file)
+            user['login'] = loaded_data['mqtt_login']
+            user['password'] = loaded_data['mqtt_pass']
+    
+def get_mqtt(handler, params):
+    handler.send_answer(0, {"message": mqtt_client.last_message})

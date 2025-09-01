@@ -16,7 +16,7 @@ import uuid
 import configparser
 import ftplib
 
-mqtt_client.start_mqtt()
+# mqtt_client.start_mqtt('5')
 
 absFilePath = os.path.abspath(__file__)
 server_path, _ = os.path.split(absFilePath)
