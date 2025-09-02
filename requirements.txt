@@ -4,7 +4,6 @@ cryptography==44.0.1
 DateTime==5.5
 fdb==2.0.2
 future==1.0.0
-jwt==1.4.0
 pycparser==2.22
 PyJWT==2.10.1
 pytz==2025.1

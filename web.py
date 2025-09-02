@@ -13,8 +13,10 @@ import mqtt_client
 SECRET = "supersecretkey"
 REFRESH_SECRET = "superrefreshkey"
 
-ACCESS_EXPIRE_MINUTES = 2
+ACCESS_EXPIRE_MINUTES = 15
 REFRESH_EXPIRE_DAYS = 7
+
+
 
 fileData = {
     'user_id': 0,
@@ -23,26 +25,27 @@ fileData = {
     'mqtt_pass': ''
 }
 
-user = {
+mqtt_user = {
     'login': '',
-    'password': ''
+    'password': '',
+    'client': {}
 }
 
 def router(handler, url: str, params):
-
-
     if "web/" in url:
         _, part2 = url.split("web/", 1)
         print("part2", part2)
-        if part2 == 'login':
-            login(handler, params)
-            start_mqtt(handler, params)
-        elif part2 == 'getData':
-            protected(handler, params)
-        elif part2 == 'get_mqtt':
-            get_mqtt(handler, params)
+        if part2 and part2 in web_procedures:
+            if part2 == 'login':
+                login(handler, params)
+            else: 
+                web_procedures[part2](handler, params)
+            # elif part2 == 'getData':
+            #     protected(handler, params)
+            # elif part2 == 'get_mqtt':
+            #     get_mqtt(handler, params)
         else:
-            handler.send_answer(200, {"error_code": 0, "message": 'не существует пути' + part2})
+            handler.send_answer(200, {"error_code": 1, "message": 'не существует пути' + part2})
     else:
         handler.send_answer(404, {"error_code": 1, "message": "not found"})
     
@@ -58,6 +61,9 @@ def login(handler, params):
 
 
         check_file(user_id, refresh)
+
+        start_mqtt(user_id)
+
 
         handler.send_answer(
             status=200,
@@ -76,6 +82,7 @@ def login(handler, params):
         access = generate_access_token(user_id)
         refresh = generate_refresh_token(user_id)
         check_file(user_id, refresh)
+        messages = start_mqtt(user_id)
 
         handler.send_answer(
             status=200,
@@ -142,8 +149,7 @@ def verify_token(token: str, secret: str):
     except jwt.InvalidTokenError:
         return None
 
-
-def protected(handler, params):
+def is_JWT_working(handler):
     cookie_header = handler.headers.get("Cookie")
     token = None
     if cookie_header:
@@ -156,23 +162,35 @@ def protected(handler, params):
             
 
     if not token:
-        handler.send_answer(401, {"message": "missing token"})
-        return
+        return False
 
     payload = verify_token(token, SECRET)
     print('payload', payload)
     if not payload or payload.get("type") != "access":
-        handler.send_answer(401, {"message": "invalid or expired token"})
-        return
+        return False
+    return payload
 
-    handler.send_answer(200, {"error_code": 0, "message": f"Hello user {payload['user_id']}!"})
+def protected(handler, params):
+    if is_JWT_working(handler):
+        handler.send_answer(200, {"error_code": 0, "message": 'JWT работает'})
+    else:
+        handler.send_answer(200, {"error_code": 1, "message": 'JWT не работает'})
 
-def start_mqtt(handler, params):
+    
 
-    get_pass(handler, params)
-    mqtt_client.start_mqtt(user)
+def start_mqtt(user_id):
 
-    handler.send_answer(200, {"error_code": 0, "message": 'mqtt start!'})
+    # get_pass(handler, params)
+    if os.path.exists(f"users/{user_id}.json"):
+        with open(f"users/{user_id}.json", 'r', encoding='utf-8') as file:
+            loaded_data = json.load(file)
+            mqtt_user['login'] = loaded_data['mqtt_login']
+            mqtt_user['password'] = loaded_data['mqtt_pass']
+    return mqtt_client.start_mqtt(mqtt_user)
+    # print('mqtt_user[client]', mqtt_user['client'])
+    # mqtt_client.fetch_last_messages("user1", "pass1", timeout=2)
+
+    # handler.send_answer(200, {"error_code": 0, "message": 'mqtt start!'})
     
     
     
@@ -205,4 +223,30 @@ def get_pass(handler, params):
             user['password'] = loaded_data['mqtt_pass']
     
 def get_mqtt(handler, params):
-    handler.send_answer(0, {"message": mqtt_client.last_message})
+
+    if is_JWT_working(handler) == False:
+        handler.send_answer(
+            200,
+            {"error_code": 1, "message": "JWT не работает, подключения к mqtt нет"}
+        )
+    user_id = is_JWT_working(handler)['user_id']
+    messages = start_mqtt(user_id)
+
+
+
+    if messages is not None:
+        handler.send_answer(
+            200,
+            {"error_code": 0, "message": messages}
+        )
+    else:
+        handler.send_answer(
+            200,
+            {"error_code": 1, "message": "Нет новых сообщений от MQTT"}
+        )
+
+web_procedures = {
+    'login': login,
+    'get_mqtt': get_mqtt,
+    'protected': protected,
+}
