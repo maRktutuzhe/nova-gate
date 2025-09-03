@@ -245,8 +245,23 @@ def get_mqtt(handler, params):
             {"error_code": 1, "message": "Нет новых сообщений от MQTT"}
         )
 
+def logout(handler, params):
+    print('DEL COOKIE')
+    handler.send_answer(
+        status=200,
+        js={
+            "error_code": 0,
+            "message": "Successfully logged out"
+        },
+        cookies=[
+            "access_token=; HttpOnly; Path=/; Max-Age=0",
+            "refresh_token=; HttpOnly; Path=/; Max-Age=0"
+        ]
+    )
+
 web_procedures = {
     'login': login,
     'get_mqtt': get_mqtt,
     'protected': protected,
+    'logout': logout
 }
