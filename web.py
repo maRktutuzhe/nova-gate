@@ -51,7 +51,7 @@ def router(handler, url: str, params):
     
 def login(handler, params):
 
-    print('params', params)
+
     user_id = 0
 
     if params["login"] == "user1" and params["pass"] == "pass1":
@@ -154,18 +154,15 @@ def is_JWT_working(handler):
     token = None
     if cookie_header:
         cookies = SimpleCookie()
-        print('cookies', cookies)
         cookies.load(cookie_header)
         if "access_token" in cookies:
             token = cookies["access_token"].value
-            print('token', token)
             
 
     if not token:
         return False
 
     payload = verify_token(token, SECRET)
-    print('payload', payload)
     if not payload or payload.get("type") != "access":
         return False
     return payload
@@ -180,7 +177,6 @@ def protected(handler, params):
 
 def start_mqtt(user_id):
 
-    # get_pass(handler, params)
     if os.path.exists(f"users/{user_id}.json"):
         with open(f"users/{user_id}.json", 'r', encoding='utf-8') as file:
             loaded_data = json.load(file)
@@ -191,36 +187,6 @@ def start_mqtt(user_id):
     # mqtt_client.fetch_last_messages("user1", "pass1", timeout=2)
 
     # handler.send_answer(200, {"error_code": 0, "message": 'mqtt start!'})
-    
-    
-    
-def get_pass(handler, params):
-    cookie_header = handler.headers.get("Cookie")
-    token = None
-    if cookie_header:
-        cookies = SimpleCookie()
-        print('cookies', cookies)
-        cookies.load(cookie_header)
-        if "access_token" in cookies:
-            token = cookies["access_token"].value
-            print('token', token)
-            
-
-    if not token:
-        handler.send_answer(401, {"message": "missing token"})
-        return
-
-    payload = verify_token(token, SECRET)
-    print('payloa', payload)
-    if not payload or payload.get("type") != "access":
-        handler.send_answer(401, {"message": "invalid or expired token"})
-        return
-
-    if os.path.exists(f"users/{payload['user_id']}.json"):
-        with open(f"users/{payload['user_id']}.json", 'r', encoding='utf-8') as file:
-            loaded_data = json.load(file)
-            user['login'] = loaded_data['mqtt_login']
-            user['password'] = loaded_data['mqtt_pass']
     
 def get_mqtt(handler, params):
 
@@ -237,13 +203,109 @@ def get_mqtt(handler, params):
     if messages is not None:
         handler.send_answer(
             200,
-            {"error_code": 0, "message": messages}
+            {"error_code": 0, "message": normalize_mqtt(messages), "old_values": messages}
         )
     else:
         handler.send_answer(
             200,
             {"error_code": 1, "message": "Нет новых сообщений от MQTT"}
         )
+
+DEVICE_TYPES = {
+    "kkm": "ККМ",
+    "sclife": "Плата жизнеобеспечения",
+    "casher": "Купюроприемник",
+}
+
+DEVICE_MODELS = {
+    "atol": "АТОЛ",
+    "shtrih": "Штрих-М",
+    "sc": "Svoy.Club",
+    "ablog": "ab-log.ru",
+}
+
+def normalize_mqtt(data):
+    rows = []
+    print("data", data)
+    for path, values in data.items():
+        print(2)
+        parts = path.split("/")
+        print("parts", parts)
+        _, client, toid, rmid, devid, devtype, devmodel, status = parts
+        print(3)
+        row = {
+            "point": toid.removeprefix("to"),
+            "workplace": rmid.removeprefix("rm"),
+            "dev_id": devid.removeprefix("dev"),
+            "dev_name": DEVICE_TYPES.get(devtype, devtype),
+            "dev_model": DEVICE_MODELS.get(devmodel, devmodel),
+            "parameter_name": status,
+            "parameter_kod": "",
+            "comment": ""
+        }
+        if devtype == "kkm":
+            row["parameter_name"] = "Статус"
+            row["parameter_kod"] = values.get("kod", "")
+            row["comment"] = values.get("descr", "")
+        elif devtype == "sclife":
+            if "sctemp" in values:
+                row["parameter_name"] = "Температура платы"
+                row["parameter_kod"] = values["sctemp"]
+
+        row["state"] = get_state(devtype, devmodel, row["parameter_kod"])
+
+        rows.append(row)
+    return rows
+
+def get_state(devtype, devmodel, kod):
+    with open("devsettings.json", 'r', encoding='utf-8') as file:
+        all_settings = json.load(file)
+        if not all_settings['devices'].get(devtype):
+            print("не нашли устройство в файле()", devtype)
+        else:
+            if not all_settings['devices'][devtype].get(devmodel):
+                print("не нашли модель в файле()", devmodel)
+            else:
+                settings = all_settings['devices'][devtype][devmodel]
+                first_param_name = next(iter(settings))
+                range = settings[first_param_name]
+                return check_range(range, kod)
+
+
+def check_range(ranges, kod):
+    for state in ["critical", "warning", "normal"]:
+        if state not in ranges:
+            continue
+        for segment in ranges[state]:
+            if in_range(kod, segment):
+                return state
+    return "unknown"
+
+def in_range(value, segment):
+    print('segment', segment)
+    print('value', value)
+
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        return False  # если в
+    lower = segment["lower"]
+    upper = segment["upper"]
+
+    # нижняя граница
+    if lower is None:
+        lower_ok = True
+    else:
+        lower_ok = value > lower
+
+    # верхняя граница
+    if upper is None:
+        upper_ok = True
+    else:
+        upper_ok = value <= upper
+    print('lower_ok', lower_ok, 'upper_ok', upper_ok)
+    return lower_ok and upper_ok
+
 
 def logout(handler, params):
     print('DEL COOKIE')

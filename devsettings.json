@@ -1,0 +1,52 @@
+{ 
+  "devices": { 
+    "sclife": { 
+      "sc": { 
+        "sctemp": { 
+          "critical": [ 
+            {"lower": null, "upper": 1},    
+            {"lower": 50, "upper": null}    
+          ], 
+          "warning": [ 
+            {"lower": 1, "upper": 12},     
+            {"lower": 35, "upper": 50}  
+          ], 
+          "normal": [ 
+            {"lower": 12, "upper": 35}  
+          ] 
+        }, 
+        "descrdev": { 
+              "devtype": "Плата жизнеобеспечения", 
+              "devmodel": "SC" 
+            } 
+      } 
+    }, 
+    "kkm": { 
+      "atol": { 
+        "kod": { 
+          "critical": [ 
+            {"lower": null, "upper": -1},    
+            {"lower": 6, "upper": null}    
+          ], 
+          "warning": [ 
+            {"lower": 1, "upper": 2},     
+            {"lower": 5, "upper": 6}  
+          ], 
+          "normal": [ 
+            {"lower": 0, "upper": 0}  
+          ], 
+          "descrstat": { 
+            "0": "Ошибок нет", 
+            "1": "Смена превысила 24 часа", 
+            "2": "Нет чековой ленты" 
+          } 
+        }, 
+        "descrdev": { 
+              "devtype": "ККМ", 
+              "devmodel": "АТОЛ" 
+            } 
+ 
+      } 
+    } 
+  } 
+} 
