@@ -7,8 +7,15 @@ from typing import Dict, Any
 from http import cookies
 from http.cookies import SimpleCookie
 import mqtt_client
+import logging
 
 
+logging.basicConfig(
+    filename="server_debug.log",
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",  
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 SECRET = "supersecretkey"
 REFRESH_SECRET = "superrefreshkey"
@@ -64,6 +71,7 @@ def login(handler, params):
 
         start_mqtt(user_id)
 
+        
 
         handler.send_answer(
             status=200,
@@ -73,8 +81,14 @@ def login(handler, params):
                 "devices": ['dev1', 'dev2']
             },
             cookies=[
-                f"access_token={access}; HttpOnly; Path=/; Max-Age=900",
-                f"refresh_token={refresh}; HttpOnly; Path=/; Max-Age=604800"
+                f"access_token={access}; HttpOnly; Path=/; SameSite=None; Domain=testgate.svoyclub.com; Max-Age=900",
+                f"refresh_token={refresh}; HttpOnly; SameSite=None; Path=/; Domain=testgate.svoyclub.com; Max-Age=604800"
+            ],
+            headers=[
+                ("Access-Control-Allow-Origin", "https://testmon.svoyclub.com"),
+                ("Access-Control-Allow-Credentials", "true"),
+                ("Access-Control-Allow-Headers", "Content-Type"),
+                ("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
             ]
         )
     elif params["login"] == "user2" and params["pass"] == "pass2":
@@ -176,7 +190,7 @@ def protected(handler, params):
     
 
 def start_mqtt(user_id):
-
+    logging.debug(f"старт mqtt:")
     if os.path.exists(f"users/{user_id}.json"):
         with open(f"users/{user_id}.json", 'r', encoding='utf-8') as file:
             loaded_data = json.load(file)
@@ -189,15 +203,21 @@ def start_mqtt(user_id):
     # handler.send_answer(200, {"error_code": 0, "message": 'mqtt start!'})
     
 def get_mqtt(handler, params):
+    logging.debug(f"get mqtt:")
 
     if is_JWT_working(handler) == False:
         handler.send_answer(
             200,
             {"error_code": 1, "message": "JWT не работает, подключения к mqtt нет"}
         )
+
+    logging.debug(f"JWT сработал!:")
+    
     user_id = is_JWT_working(handler)['user_id']
     messages = start_mqtt(user_id)
 
+    logging.debug(f"получили сообщение:")
+    
 
 
     if messages is not None:
@@ -227,6 +247,8 @@ DEVICE_MODELS = {
 def normalize_mqtt(data):
     rows = []
     print("data", data)
+    logging.debug(f"пришли в normalize_mqtt:")
+
     for path, values in data.items():
         print(2)
         parts = path.split("/")
@@ -258,8 +280,13 @@ def normalize_mqtt(data):
     return rows
 
 def get_state(devtype, devmodel, kod):
+    logging.debug(f"пришли в get_state:")
+
     with open("devsettings.json", 'r', encoding='utf-8') as file:
+
         all_settings = json.load(file)
+        logging.debug(f"пришли в get_state:")
+        logging.debug(f"{all_settings}")
         if not all_settings['devices'].get(devtype):
             print("не нашли устройство в файле()", devtype)
         else:
@@ -273,6 +300,8 @@ def get_state(devtype, devmodel, kod):
 
 
 def check_range(ranges, kod):
+    logging.debug(f"пришли в check_range:")
+
     for state in ["critical", "warning", "normal"]:
         if state not in ranges:
             continue
@@ -282,6 +311,8 @@ def check_range(ranges, kod):
     return "unknown"
 
 def in_range(value, segment):
+    logging.debug(f"пришли в in_range:")
+
     print('segment', segment)
     print('value', value)
 

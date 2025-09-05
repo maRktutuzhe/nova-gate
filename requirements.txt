@@ -6,6 +6,7 @@ fdb==2.0.2
 future==1.0.0
 pycparser==2.22
 PyJWT==2.10.1
+jwt==1.4.0
 pytz==2025.1
 typing==3.7.4.3
 uuid==1.30
