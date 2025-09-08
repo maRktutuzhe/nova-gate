@@ -257,23 +257,32 @@ def get_mqtt(handler, params, payload, new_access):
     logging.debug(f"получили сообщение:")
     
     cookies = []
+    headers = []
 
     if new_access:  # если обновили access
         cookies.append(
             f"access_token={new_access}; HttpOnly; Path=/; Max-Age={ACCESS_EXPIRE_MINUTES*60}"
         )
+        headers=[
+                ("Access-Control-Allow-Origin", "https://testmon.svoyclub.com"),
+                ("Access-Control-Allow-Credentials", "true"),
+                ("Access-Control-Allow-Headers", "Content-Type"),
+                ("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            ]
 
     if messages:
         handler.send_answer(
             200,
             {"error_code": 0, "message": normalize_mqtt(messages), "old_values": messages},
-            cookies=cookies
+            cookies=cookies,
+            headers=headers
         )
     else:
         handler.send_answer(
             200,
             {"error_code": 1, "message": "Нет новых сообщений от MQTT"},
-            cookies=cookies
+            cookies=cookies,
+            headers=headers
         )
 
 DEVICE_TYPES = {
