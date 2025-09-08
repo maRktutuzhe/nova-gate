@@ -107,8 +107,8 @@ def login(handler, params):
                 "user_name": "Name2",
             },
             cookies=[
-                f"access_token={access}; HttpOnly; Path=/; Max-Age=900",
-                f"refresh_token={refresh}; HttpOnly; Path=/; Max-Age=604800"
+                f"access_token={access}; HttpOnly; Path=/; SameSite=None; Domain=testgate.svoyclub.com; Max-Age=900",
+                f"refresh_token={refresh}; HttpOnly; Path=/; SameSite=None; Domain=testgate.svoyclub.com; Max-Age=604800"
             ],
             headers=[
                 ("Access-Control-Allow-Origin", "https://testmon.svoyclub.com"),
@@ -261,7 +261,7 @@ def get_mqtt(handler, params, payload, new_access):
 
     if new_access:  # если обновили access
         cookies.append(
-            f"access_token={new_access}; HttpOnly; Path=/; Max-Age={ACCESS_EXPIRE_MINUTES*60}"
+            f"access_token={new_access}; HttpOnly; Path=/; SameSite=None; Domain=testgate.svoyclub.com; Max-Age={ACCESS_EXPIRE_MINUTES*60}"
         )
         headers=[
                 ("Access-Control-Allow-Origin", "https://testmon.svoyclub.com"),
