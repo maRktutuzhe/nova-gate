@@ -338,7 +338,7 @@ def check_range(ranges, kod):
         for segment in ranges[state]:
             if in_range(kod, segment):
                 return state
-    return "unknown"
+    return "critical"
 
 def in_range(value, segment):
     logging.debug(f"пришли в in_range:")
@@ -350,6 +350,9 @@ def in_range(value, segment):
         return False  # если в
     lower = segment["lower"]
     upper = segment["upper"]
+    
+    if lower == upper and value == upper:
+        return True         
 
     # нижняя граница
     if lower is None:
