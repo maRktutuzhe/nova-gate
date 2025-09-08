@@ -211,7 +211,7 @@ def is_JWT_working(handler):
 
     return {"user_id": user_id}, new_access
 
-def read_refresh_from_file(user_id: int) -> str | None:
+def read_refresh_from_file(user_id: int):
     try:       
         with open(f"users/{user_id}.json", 'r', encoding='utf-8') as file:
             loaded_data = json.load(file)
