@@ -164,22 +164,58 @@ def verify_token(token: str, secret: str):
         return None
 
 def is_JWT_working(handler):
-    cookie_header = handler.headers.get("Cookie")
-    token = None
-    if cookie_header:
-        cookies = SimpleCookie()
-        cookies.load(cookie_header)
-        if "access_token" in cookies:
-            token = cookies["access_token"].value
-            
+    print('1')
+    cookie_header = handler.headers["Cookie"]
+    print('2')
 
-    if not token:
+    if not cookie_header:
+        print('not cookie_header')
         return False
 
-    payload = verify_token(token, SECRET)
+    print('a')
+    cookies = SimpleCookie()
+    cookies.load(cookie_header)
+    access_token = cookies["access_token"]
+    refresh_token = cookies["refresh_token"]
+    print('b')
+
+    if not access_token:
+        return False
+
+    payload = verify_token(access_token, SECRET)
     if not payload or payload.get("type") != "access":
         return False
-    return payload
+
+    if not refresh_token:
+        return False
+
+    refresh_payload = verify_token(refresh_token.value, REFRESH_SECRET)
+    if not refresh_payload or refresh_payload.get("type") != "refresh":
+        return False
+
+    user_id = refresh_payload.get("user_id")
+    if not user_id:
+        return False
+
+    # Проверяем refresh в файле
+    file_refresh = read_refresh_from_file(user_id)
+    if not file_refresh or file_refresh != refresh_token.value:
+        return False
+
+    new_access = generate_access_token(user_id)
+
+    handler.send_header("Set-Cookie", f"access_token={new_access}; HttpOnly; Path=/; Max-Age={ACCESS_EXPIRE_MINUTES*60}")
+    print("обновлен")
+    return {"user_id": user_id, "type": "access"}
+
+
+def read_refresh_from_file(user_id: int) -> str | None:
+    """Возвращает refresh токен пользователя из файла"""
+    try:
+        with open(f"refresh_{user_id}.txt", "r") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return None
 
 def protected(handler, params):
     if is_JWT_working(handler):
@@ -205,15 +241,21 @@ def start_mqtt(user_id):
 def get_mqtt(handler, params):
     logging.debug(f"get mqtt:")
 
-    if is_JWT_working(handler) == False:
+    res = is_JWT_working(handler)
+
+    if res == False:
+        print('v')
         handler.send_answer(
             200,
             {"error_code": 1, "message": "JWT не работает, подключения к mqtt нет"}
         )
+        return
+
+    print('is_JWT_working', res)
 
     logging.debug(f"JWT сработал!:")
     
-    user_id = is_JWT_working(handler)['user_id']
+    user_id = res['user_id']
     messages = start_mqtt(user_id)
 
     logging.debug(f"получили сообщение:")
