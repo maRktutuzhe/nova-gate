@@ -20,7 +20,7 @@ logging.basicConfig(
 SECRET = "supersecretkey"
 REFRESH_SECRET = "superrefreshkey"
 
-ACCESS_EXPIRE_MINUTES = 2
+ACCESS_EXPIRE_MINUTES = 15
 REFRESH_EXPIRE_DAYS = 7
 
 
