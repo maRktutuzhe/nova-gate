@@ -20,7 +20,7 @@ logging.basicConfig(
 SECRET = "supersecretkey"
 REFRESH_SECRET = "superrefreshkey"
 
-ACCESS_EXPIRE_MINUTES = 15
+ACCESS_EXPIRE_MINUTES = 2
 REFRESH_EXPIRE_DAYS = 7
 
 
@@ -39,22 +39,25 @@ mqtt_user = {
 }
 
 def router(handler, url: str, params):
-    if "web/" in url:
-        _, part2 = url.split("web/", 1)
-        print("part2", part2)
-        if part2 and part2 in web_procedures:
-            if part2 == 'login':
-                login(handler, params)
-            else: 
-                web_procedures[part2](handler, params)
-            # elif part2 == 'getData':
-            #     protected(handler, params)
-            # elif part2 == 'get_mqtt':
-            #     get_mqtt(handler, params)
-        else:
-            handler.send_answer(200, {"error_code": 1, "message": 'не существует пути' + part2})
-    else:
+    if "web/" not in url:
         handler.send_answer(404, {"error_code": 1, "message": "not found"})
+        return
+        
+    _, part2 = url.split("web/", 1)
+    print("part2", part2)
+
+    if not part2 and part2 not in web_procedures:
+        handler.send_answer(200, {"error_code": 1, "message": 'не существует пути' + part2})
+        return
+
+    if part2 in PUBLIC_ENDPOINTS:
+        print('PUBLIC_ENDPOINTS')
+        return web_procedures[part2](handler, params)
+    payload, new_access = is_JWT_working(handler)
+    if not payload:
+        handler.send_answer(401, {"error_code": 1, "message": "unauthorized"})
+        return
+    return web_procedures[part2](handler, params, payload, new_access)
     
 def login(handler, params):
 
@@ -78,17 +81,10 @@ def login(handler, params):
             js={
                 "error_code": 0,
                 "user_name": "Name1",
-                "devices": ['dev1', 'dev2']
             },
             cookies=[
-                f"access_token={access}; HttpOnly; Path=/; SameSite=None; Domain=testgate.svoyclub.com; Max-Age=900",
-                f"refresh_token={refresh}; HttpOnly; SameSite=None; Path=/; Domain=testgate.svoyclub.com; Max-Age=604800"
-            ],
-            headers=[
-                ("Access-Control-Allow-Origin", "https://testmon.svoyclub.com"),
-                ("Access-Control-Allow-Credentials", "true"),
-                ("Access-Control-Allow-Headers", "Content-Type"),
-                ("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                f"access_token={access}; HttpOnly; Path=/; Max-Age=900",
+                f"refresh_token={refresh}; HttpOnly; Path=/; Max-Age=604800"
             ]
         )
     elif params["login"] == "user2" and params["pass"] == "pass2":
@@ -103,7 +99,6 @@ def login(handler, params):
             js={
                 "error_code": 0,
                 "user_name": "Name2",
-                "devices": ['dev3', 'dev4']
             },
             cookies=[
                 f"access_token={access}; HttpOnly; Path=/; Max-Age=900",
@@ -136,8 +131,6 @@ def generate_access_token(user_id: int):
     expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=ACCESS_EXPIRE_MINUTES)
     payload = {
         "user_id": user_id,
-        # "username": "admin",
-        # "role": "administrator",
         "exp": int(expire.timestamp()),
         "iat": int(datetime.datetime.now(datetime.timezone.utc).timestamp()),
         "type": "access"
@@ -164,56 +157,53 @@ def verify_token(token: str, secret: str):
         return None
 
 def is_JWT_working(handler):
-    print('1')
-    cookie_header = handler.headers["Cookie"]
-    print('2')
+    
+    cookie_header = handler.headers.get("Cookie")
 
     if not cookie_header:
-        print('not cookie_header')
-        return False
+        return None, None
 
-    print('a')
+    # получение cookie
     cookies = SimpleCookie()
     cookies.load(cookie_header)
-    access_token = cookies["access_token"]
-    refresh_token = cookies["refresh_token"]
-    print('b')
+    access_token = cookies.get("access_token")
+    refresh_token = cookies.get("refresh_token")
 
-    if not access_token:
-        return False
-
-    payload = verify_token(access_token, SECRET)
-    if not payload or payload.get("type") != "access":
-        return False
+    if access_token:
+        payload = verify_token(access_token.value, SECRET)
+        print('payload', payload)
+        
+        if payload and payload.get("type") == "access":
+            print("access_token ещё работает")
+            return payload, None
 
     if not refresh_token:
-        return False
+        print("refresh_token отсутствует")
+        return None, None
 
     refresh_payload = verify_token(refresh_token.value, REFRESH_SECRET)
-    if not refresh_payload or refresh_payload.get("type") != "refresh":
-        return False
+    if not refresh_payload or refresh_payload["type"] != "refresh":
+        return None, None
 
-    user_id = refresh_payload.get("user_id")
+    user_id = refresh_payload["user_id"]
     if not user_id:
-        return False
+        return None, None
 
     # Проверяем refresh в файле
     file_refresh = read_refresh_from_file(user_id)
     if not file_refresh or file_refresh != refresh_token.value:
-        return False
+        return None, None
 
     new_access = generate_access_token(user_id)
+    print("рефрешнули")
 
-    handler.send_header("Set-Cookie", f"access_token={new_access}; HttpOnly; Path=/; Max-Age={ACCESS_EXPIRE_MINUTES*60}")
-    print("обновлен")
-    return {"user_id": user_id, "type": "access"}
-
+    return {"user_id": user_id}, new_access
 
 def read_refresh_from_file(user_id: int) -> str | None:
-    """Возвращает refresh токен пользователя из файла"""
-    try:
-        with open(f"refresh_{user_id}.txt", "r") as f:
-            return f.read().strip()
+    try:       
+        with open(f"users/{user_id}.json", 'r', encoding='utf-8') as file:
+            loaded_data = json.load(file)
+            return loaded_data['refresh']
     except FileNotFoundError:
         return None
 
@@ -233,44 +223,45 @@ def start_mqtt(user_id):
             mqtt_user['login'] = loaded_data['mqtt_login']
             mqtt_user['password'] = loaded_data['mqtt_pass']
     return mqtt_client.start_mqtt(mqtt_user)
-    # print('mqtt_user[client]', mqtt_user['client'])
-    # mqtt_client.fetch_last_messages("user1", "pass1", timeout=2)
-
-    # handler.send_answer(200, {"error_code": 0, "message": 'mqtt start!'})
     
-def get_mqtt(handler, params):
-    logging.debug(f"get mqtt:")
+def get_mqtt(handler, params, payload, new_access):
+    # logging.debug(f"get mqtt:")
 
-    res = is_JWT_working(handler)
+    # res = is_JWT_working(handler)
 
-    if res == False:
-        print('v')
-        handler.send_answer(
-            200,
-            {"error_code": 1, "message": "JWT не работает, подключения к mqtt нет"}
-        )
-        return
+    # if res == False:
+    #     handler.send_answer(
+    #         200,
+    #         {"error_code": 1, "message": "JWT не работает, подключения к mqtt нет"}
+    #     )
+    #     return
 
-    print('is_JWT_working', res)
 
-    logging.debug(f"JWT сработал!:")
+    # logging.debug(f"JWT сработал!:")
     
-    user_id = res['user_id']
+    user_id = payload['user_id']
     messages = start_mqtt(user_id)
 
     logging.debug(f"получили сообщение:")
     
+    cookies = []
 
+    if new_access:  # если обновили access
+        cookies.append(
+            f"access_token={new_access}; HttpOnly; Path=/; Max-Age={ACCESS_EXPIRE_MINUTES*60}"
+        )
 
-    if messages is not None:
+    if messages:
         handler.send_answer(
             200,
-            {"error_code": 0, "message": normalize_mqtt(messages), "old_values": messages}
+            {"error_code": 0, "message": normalize_mqtt(messages), "old_values": messages},
+            cookies=cookies
         )
     else:
         handler.send_answer(
             200,
-            {"error_code": 1, "message": "Нет новых сообщений от MQTT"}
+            {"error_code": 1, "message": "Нет новых сообщений от MQTT"},
+            cookies=cookies
         )
 
 DEVICE_TYPES = {
@@ -292,11 +283,8 @@ def normalize_mqtt(data):
     logging.debug(f"пришли в normalize_mqtt:")
 
     for path, values in data.items():
-        print(2)
         parts = path.split("/")
-        print("parts", parts)
         _, client, toid, rmid, devid, devtype, devmodel, status = parts
-        print(3)
         row = {
             "point": toid.removeprefix("to"),
             "workplace": rmid.removeprefix("rm"),
@@ -355,8 +343,6 @@ def check_range(ranges, kod):
 def in_range(value, segment):
     logging.debug(f"пришли в in_range:")
 
-    print('segment', segment)
-    print('value', value)
 
     try:
         value = int(value)
@@ -376,7 +362,6 @@ def in_range(value, segment):
         upper_ok = True
     else:
         upper_ok = value <= upper
-    print('lower_ok', lower_ok, 'upper_ok', upper_ok)
     return lower_ok and upper_ok
 
 
@@ -397,6 +382,8 @@ def logout(handler, params):
 web_procedures = {
     'login': login,
     'get_mqtt': get_mqtt,
-    'protected': protected,
+    # 'protected': protected,
     'logout': logout
 }
+
+PUBLIC_ENDPOINTS = {"login", "logout"}
