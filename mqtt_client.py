@@ -3,6 +3,15 @@ import jwt
 import json
 import time
 
+import logging
+
+logging.basicConfig(
+    filename="server_debug.log",
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",  
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
 last_message = None
 
 def fetch_last_messages(login, password, timeout=2):
@@ -79,6 +88,8 @@ def start_mqtt(user: dict, timeout: int = 2) -> dict:
     messages = {}
 
     def on_connect(client, userdata, flags, rc):
+        logging.debug(f"on_connect : ")
+        
         if rc == 0:
             # Подписываемся на все топики, доступные для этой учетной записи
             client.subscribe("#")
@@ -86,6 +97,8 @@ def start_mqtt(user: dict, timeout: int = 2) -> dict:
             print("Ошибка подключения к MQTT:", rc)
 
     def on_message(client, userdata, msg):
+        logging.debug(f"on_message : ")
+        
         try:
             payload = json.loads(msg.payload.decode())
         except Exception:
@@ -94,6 +107,8 @@ def start_mqtt(user: dict, timeout: int = 2) -> dict:
 
     # создаем MQTT-клиент
     client = mqtt.Client()
+    logging.debug(f"user['password'] : {user['password']}")
+
     client.username_pw_set(user['login'], user['password'])
     client.on_connect = on_connect
     client.on_message = on_message

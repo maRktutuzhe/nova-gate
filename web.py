@@ -8,7 +8,7 @@ from http import cookies
 from http.cookies import SimpleCookie
 import mqtt_client
 import logging
-
+import fdb
 
 logging.basicConfig(
     filename="server_debug.log",
@@ -45,6 +45,7 @@ def router(handler, url: str, params):
         
     _, part2 = url.split("web/", 1)
     print("part2", part2)
+    logging.debug(f"part2: {part2}")
 
     if not part2 and part2 not in web_procedures:
         handler.send_answer(200, {"error_code": 1, "message": 'не существует пути' + part2})
@@ -59,87 +60,171 @@ def router(handler, url: str, params):
         return
     return web_procedures[part2](handler, params, payload, new_access)
     
+def connect(handler, params, payload=None, new_access=None):
+    
+    # Прямо прописанные параметры БД
+    db_path = "10.129.0.47:/home/michael/tb/TEST_SC.FDB"   # путь к базе
+    db_user = "SYSDBA"
+    db_password = "masterkey"
+    db_charset = "UTF8"
+    
+    try:
+        # logging.debug(f"старт connect:")
+        
+        # Подключаемся к базе
+        conn = fdb.connect(
+            dsn=db_path,
+            user=db_user,
+            password=db_password,
+            charset=db_charset
+        )
+        # logging.debug(f"конец connect:")
+        
+    except Exception as e:
+        # logging.debug(f"ошибка подключения к бд connect:")
+        
+        return handler.send_answer(500, {"error_code": 1, "message": f"Ошибка подключения к БД: {e}"})
+    
+    try:
+        # SQL для авторизации (можно менять на любую процедуру)
+        login = params.get("login", "test_user")
+        password = params.get("pass", "secret")
+        sql = "SELECT * FROM w3_auth_mon('%s', '%s')" % ('client0', 'client0112233')
+        
+        cur = conn.cursor()
+        cur.execute(sql)
+        # Формируем результат в виде списка словарей
+        result = [dict(zip([d[0].lower() for d in cur.description], row)) for row in cur.fetchall()]
+    except Exception as e:
+        return handler.send_answer(500, {"error_code": 1, "message": f"Ошибка выполнения SQL: {e}"})
+    finally:
+        conn.close()
+    
+    # Возвращаем результат через Gate
+    return handler.send_answer(200, {"error_code": 0, "data": result})
+    
 def login(handler, params):
+    connect, resource = get_db_login_data(handler, params)
+    data = resource[0]
+    logging.debug(f"connect: {connect}")
+    logging.debug(f"data: {data}")
 
+    if connect:
+        logging.debug(f"зашли в if connect")
+        
+        if data.get('err') == 0:
+            logging.debug(f"зашли в иф, генерим токены")
 
-    user_id = 0
+            access = generate_access_token(data['id_sc'])
+            refresh = generate_refresh_token(data['id_sc'])
+            logging.debug(f"access {access}")
+            logging.debug(f"refresh {refresh}")
+            
+            check_file(data, refresh)
+            start_mqtt(data['id_sc'])
+            logging.debug(f"закончили mqtt")
+            
 
-    if params["login"] == "user1" and params["pass"] == "pass1":
-        user_id = 1
-        access = generate_access_token(user_id)
-        refresh = generate_refresh_token(user_id)
-
-
-        check_file(user_id, refresh)
-
-        start_mqtt(user_id)
-
+            handler.send_answer(
+                status=200,
+                js={
+                    "error_code": 0,
+                    "user_name": data['id_sc'],
+                },
+                cookies=[
+                    f"access_token={access}; HttpOnly; Path=/; Max-Age=900",
+                    f"refresh_token={refresh}; HttpOnly; Path=/; Max-Age=604800"
+                ],
+                headers=[
+                    ("Access-Control-Allow-Origin", "https://testmon.svoyclub.com"),
+                    ("Access-Control-Allow-Credentials", "true"),
+                    ("Access-Control-Allow-Headers", "Content-Type"),
+                    ("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                ]
+            )
+    else:
+        logging.debug(f"не зашли в if connect")
         
 
-        handler.send_answer(
-            status=200,
-            js={
-                "error_code": 0,
-                "user_name": "Name1",
-            },
-            cookies=[
-                f"access_token={access}; HttpOnly; Path=/; Max-Age=900",
-                f"refresh_token={refresh}; HttpOnly; Path=/; Max-Age=604800"
-            ],
-            headers=[
-                ("Access-Control-Allow-Origin", "https://testmon.svoyclub.com"),
-                ("Access-Control-Allow-Credentials", "true"),
-                ("Access-Control-Allow-Headers", "Content-Type"),
-                ("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            ]
+def get_db_login_data(handler, params):
+    # Прямо прописанные параметры БД
+    db_path = "10.129.0.47:/home/michael/tb/TEST_SC.FDB"   # путь к базе
+    db_user = "SYSDBA"
+    db_password = "masterkey"
+    db_charset = "UTF8"
+    result = []
+    try:
+        logging.debug(f"старт connect:")
+        
+        # Подключаемся к базе
+        conn = fdb.connect(
+            dsn=db_path,
+            user=db_user,
+            password=db_password,
+            charset=db_charset
         )
-    elif params["login"] == "user2" and params["pass"] == "pass2":
-        user_id = 2
-        access = generate_access_token(user_id)
-        refresh = generate_refresh_token(user_id)
-        check_file(user_id, refresh)
-        messages = start_mqtt(user_id)
+        logging.debug(f"конец connect:")
+        
+    except Exception as e:
+        logging.debug(f"ошибка подключения к бд connect:")
+        
+        return False, handler.send_answer(500, {"error_code": 1, "message": f"Ошибка подключения к БД: {e}"})
+    
+    try:
+        logging.debug(f"старт SQL:")
+        
+        # SQL для авторизации (можно менять на любую процедуру)
+        login = params.get("login",)
+        password = params.get("pass")
+        sql = "SELECT * FROM w3_auth_mon('%s', '%s')" % (login, password)
 
-        handler.send_answer(
-            status=200,
-            js={
-                "error_code": 0,
-                "user_name": "Name2",
-            },
-            cookies=[
-                f"access_token={access}; HttpOnly; Path=/; SameSite=None; Domain=testgate.svoyclub.com; Max-Age=900",
-                f"refresh_token={refresh}; HttpOnly; Path=/; SameSite=None; Domain=testgate.svoyclub.com; Max-Age=604800"
-            ],
-            headers=[
-                ("Access-Control-Allow-Origin", "https://testmon.svoyclub.com"),
-                ("Access-Control-Allow-Credentials", "true"),
-                ("Access-Control-Allow-Headers", "Content-Type"),
-                ("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            ]
-        )
-    else:
-        handler.send_answer(401, {"error_code": 2, "message": "invalid credentials"})
+        cur = conn.cursor()
+        cur.execute(sql)
+        # Формируем результат в виде списка словарей
+        result = [dict(zip([d[0].lower() for d in cur.description], row)) for row in cur.fetchall()]
+        logging.debug(f"result SQL: {result}")
+        return True, result
+    except Exception as e:
+        return False, handler.send_answer(500, {"error_code": 1, "message": f"Ошибка выполнения SQL: {e}"})
+    finally:
+        conn.close()
+    
+  
 
-def check_file(user_id, refresh):
+def check_file(db_data, refresh):
+    logging.debug(f"старт check_file:")
+    logging.debug(f"id: {db_data['id_sc']}")
     data = {
-        "user_id": user_id,
+        "user_id": db_data['id_sc'],
         "refresh": refresh,
+        "mqtt_login": db_data['mqtt_login'],
+        "mqtt_pass": db_data['mqtt_pass']
     }
     loaded_data = {}
+    logging.debug(f"сделали дату")
 
-    if os.path.exists(f"users/{user_id}.json"):
-        with open(f"users/{user_id}.json", 'r', encoding='utf-8') as file:
-            loaded_data = json.load(file)
-            loaded_data['refresh'] = data['refresh']
-        with open(f"users/{user_id}.json", 'w', encoding='utf-8') as file:
-            json.dump(loaded_data, file, ensure_ascii=False, indent=4)
-    else:
-        with open(f"users/{user_id}.json", 'a', encoding='utf-8') as file:
+    if os.path.exists(f"users/{db_data['id_sc']}.json"):
+        logging.debug(f"нашли файл :")
+        
+        # with open(f"users/{user_id}.json", 'r', encoding='utf-8') as file:
+        #     loaded_data = json.load(file)
+        #     loaded_data['refresh'] = data['refresh']
+        with open(f"users/{db_data['id_sc']}.json", 'w', encoding='utf-8') as file:
             json.dump(data, file, ensure_ascii=False, indent=4)
+        logging.debug(f"записали")
+        
+    else:
+        logging.debug(f"создаем файл :")
+        
+        with open(f"users/{db_data['id_sc']}.json", 'a', encoding='utf-8') as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
+    logging.debug(f"конец check_file:")
+    
     
 
 
-def generate_access_token(user_id: int):
+def generate_access_token(user_id):
+    
     expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=ACCESS_EXPIRE_MINUTES)
     payload = {
         "user_id": user_id,
@@ -149,7 +234,7 @@ def generate_access_token(user_id: int):
     }
     return jwt.encode(payload, SECRET, algorithm="HS256")
 
-def generate_refresh_token(user_id: int):
+def generate_refresh_token(user_id):
     expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=REFRESH_EXPIRE_DAYS)
     payload = {
         "user_id": user_id,
@@ -228,12 +313,14 @@ def protected(handler, params):
     
 
 def start_mqtt(user_id):
-    logging.debug(f"старт mqtt:")
+    logging.debug(f"старт mqtt для : {user_id}")
     if os.path.exists(f"users/{user_id}.json"):
         with open(f"users/{user_id}.json", 'r', encoding='utf-8') as file:
             loaded_data = json.load(file)
             mqtt_user['login'] = loaded_data['mqtt_login']
             mqtt_user['password'] = loaded_data['mqtt_pass']
+            logging.debug(f"mqtt_user : {mqtt_user}")
+            
     return mqtt_client.start_mqtt(mqtt_user)
     
 def get_mqtt(handler, params, payload, new_access):
@@ -406,8 +493,8 @@ def logout(handler, params):
 web_procedures = {
     'login': login,
     'get_mqtt': get_mqtt,
-    # 'protected': protected,
+    'connect': connect,
     'logout': logout
 }
 
-PUBLIC_ENDPOINTS = {"login", "logout"}
+PUBLIC_ENDPOINTS = {"login", "logout", "connect"}
