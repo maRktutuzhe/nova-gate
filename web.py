@@ -9,6 +9,7 @@ from http.cookies import SimpleCookie
 import mqtt_client
 import logging
 import fdb
+import configparser
 
 logging.basicConfig(
     filename="server_debug.log",
@@ -60,48 +61,17 @@ def router(handler, url: str, params):
         return
     return web_procedures[part2](handler, params, payload, new_access)
     
-def connect(handler, params, payload=None, new_access=None):
     
-    # Прямо прописанные параметры БД
-    db_path = "10.129.0.47:/home/michael/tb/TEST_SC.FDB"   # путь к базе
-    db_user = "SYSDBA"
-    db_password = "masterkey"
-    db_charset = "UTF8"
+def get_config():
+    config_file_name = "webtest.ini"
+    if not os.path.isfile(config_file_name):
+        return None
+    config = configparser.ConfigParser()
+    config.read(config_file_name)
+    logging.debug(f"config: {config}")
     
-    try:
-        # logging.debug(f"старт connect:")
-        
-        # Подключаемся к базе
-        conn = fdb.connect(
-            dsn=db_path,
-            user=db_user,
-            password=db_password,
-            charset=db_charset
-        )
-        # logging.debug(f"конец connect:")
-        
-    except Exception as e:
-        # logging.debug(f"ошибка подключения к бд connect:")
-        
-        return handler.send_answer(500, {"error_code": 1, "message": f"Ошибка подключения к БД: {e}"})
+    return config
     
-    try:
-        # SQL для авторизации (можно менять на любую процедуру)
-        login = params.get("login", "test_user")
-        password = params.get("pass", "secret")
-        sql = "SELECT * FROM w3_auth_mon('%s', '%s')" % ('client0', 'client0112233')
-        
-        cur = conn.cursor()
-        cur.execute(sql)
-        # Формируем результат в виде списка словарей
-        result = [dict(zip([d[0].lower() for d in cur.description], row)) for row in cur.fetchall()]
-    except Exception as e:
-        return handler.send_answer(500, {"error_code": 1, "message": f"Ошибка выполнения SQL: {e}"})
-    finally:
-        conn.close()
-    
-    # Возвращаем результат через Gate
-    return handler.send_answer(200, {"error_code": 0, "data": result})
     
 def login(handler, params):
     connect, resource = get_db_login_data(handler, params)
@@ -147,11 +117,13 @@ def login(handler, params):
         
 
 def get_db_login_data(handler, params):
-    # Прямо прописанные параметры БД
-    db_path = "10.129.0.47:/home/michael/tb/TEST_SC.FDB"   # путь к базе
-    db_user = "SYSDBA"
-    db_password = "masterkey"
-    db_charset = "UTF8"
+    
+    config = get_config()
+    db_path = config.get('databases', 'db0_path')
+    db_user = config.get('databases', 'db0_user')
+    db_password = config.get('databases', 'db0_password')
+    db_charset = config.get('databases', 'db0_charset')
+
     result = []
     try:
         logging.debug(f"старт connect:")
@@ -324,19 +296,7 @@ def start_mqtt(user_id):
     return mqtt_client.start_mqtt(mqtt_user)
     
 def get_mqtt(handler, params, payload, new_access):
-    # logging.debug(f"get mqtt:")
 
-    # res = is_JWT_working(handler)
-
-    # if res == False:
-    #     handler.send_answer(
-    #         200,
-    #         {"error_code": 1, "message": "JWT не работает, подключения к mqtt нет"}
-    #     )
-    #     return
-
-
-    # logging.debug(f"JWT сработал!:")
     
     user_id = payload['user_id']
     messages = start_mqtt(user_id)
@@ -418,13 +378,10 @@ def normalize_mqtt(data):
     return rows
 
 def get_state(devtype, devmodel, kod):
-    logging.debug(f"пришли в get_state:")
 
     with open("devsettings.json", 'r', encoding='utf-8') as file:
 
         all_settings = json.load(file)
-        logging.debug(f"пришли в get_state:")
-        logging.debug(f"{all_settings}")
         if not all_settings['devices'].get(devtype):
             print("не нашли устройство в файле()", devtype)
         else:
@@ -438,7 +395,6 @@ def get_state(devtype, devmodel, kod):
 
 
 def check_range(ranges, kod):
-    logging.debug(f"пришли в check_range:")
 
     for state in ["critical", "warning", "normal"]:
         if state not in ranges:
@@ -449,7 +405,6 @@ def check_range(ranges, kod):
     return "critical"
 
 def in_range(value, segment):
-    logging.debug(f"пришли в in_range:")
 
 
     try:
@@ -476,6 +431,52 @@ def in_range(value, segment):
     return lower_ok and upper_ok
 
 
+def connect(handler, params, payload=None, new_access=None):
+    
+    # Прямо прописанные параметры БД
+    db_path = "10.129.0.47:/home/michael/tb/TEST_SC.FDB"   # путь к базе
+    db_user = "SYSDBA"
+    db_password = "masterkey"
+    db_charset = "UTF8"
+    
+    
+    get_config()
+    
+    try:
+        # logging.debug(f"старт connect:")
+        
+        # Подключаемся к базе
+        conn = fdb.connect(
+            dsn=db_path,
+            user=db_user,
+            password=db_password,
+            charset=db_charset
+        )
+        # logging.debug(f"конец connect:")
+        
+    except Exception as e:
+        # logging.debug(f"ошибка подключения к бд connect:")
+        
+        return handler.send_answer(500, {"error_code": 1, "message": f"Ошибка подключения к БД: {e}"})
+    
+    try:
+        # SQL для авторизации (можно менять на любую процедуру)
+        login = params.get("login", "test_user")
+        password = params.get("pass", "secret")
+        sql = "SELECT * FROM w3_auth_mon('%s', '%s')" % ('client0', 'client0112233')
+        
+        cur = conn.cursor()
+        cur.execute(sql)
+        # Формируем результат в виде списка словарей
+        result = [dict(zip([d[0].lower() for d in cur.description], row)) for row in cur.fetchall()]
+    except Exception as e:
+        return handler.send_answer(500, {"error_code": 1, "message": f"Ошибка выполнения SQL: {e}"})
+    finally:
+        conn.close()
+    
+    # Возвращаем результат через Gate
+    return handler.send_answer(200, {"error_code": 0, "data": result})
+
 def logout(handler, params):
     print('DEL COOKIE')
     handler.send_answer(
@@ -497,4 +498,4 @@ web_procedures = {
     'logout': logout
 }
 
-PUBLIC_ENDPOINTS = {"login", "logout", "connect"}
+PUBLIC_ENDPOINTS = {"login", "logout"}
