@@ -354,6 +354,7 @@ def normalize_mqtt(data):
         parts = path.split("/")
         _, client, toid, rmid, devid, devtype, devmodel, status = parts
         row = {
+            "client": client.removeprefix("client"),
             "point": toid.removeprefix("to"),
             "workplace": rmid.removeprefix("rm"),
             "dev_id": devid.removeprefix("dev"),
