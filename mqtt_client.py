@@ -49,46 +49,11 @@ def fetch_last_messages(login, password, timeout=2):
 
     return messages
 
-# def on_connect(client, userdata, flags, rc):
-#     print("Connected to MQTT with result code " + str(rc))
-#     client.subscribe("nova/client0/#")  # ← твой топик
-
-# def on_message(client, userdata, msg):
-#     global last_message
-#     try:
-#         last_message = json.loads(msg.payload.decode())
-#     except json.JSONDecodeError:
-#         last_message = {"raw": msg.payload.decode()}
-#     # print("MQTT message received:", last_message)
-
-# def start_mqtt(user):
-#     print('mqtt user^', user)
-#     client = mqtt.Client()
-#     client.on_connect = on_connect
-#     client.on_message = on_message
-
-#     # если нужен логин/пароль:
-#     client.username_pw_set(user['login'], user['password'])
-
-#     client.connect("89.169.141.81", 1883, 60)
-#     client.loop_start()
-#     fetch_last_messages()
-#     return client
-
-
 def start_mqtt(user: dict, timeout: int = 2) -> dict:
-    """
-    Временно подключается к MQTT под учеткой пользователя,
-    подписывается на все доступные топики и возвращает их последние retained-сообщения.
 
-    :param user: словарь с ключами 'login' и 'password'
-    :param timeout: сколько секунд ждать сообщения от брокера
-    :return: dict {топик: сообщение}
-    """
     messages = {}
 
     def on_connect(client, userdata, flags, rc):
-        logging.debug(f"on_connect : ")
         
         if rc == 0:
             # Подписываемся на все топики, доступные для этой учетной записи
@@ -97,7 +62,6 @@ def start_mqtt(user: dict, timeout: int = 2) -> dict:
             print("Ошибка подключения к MQTT:", rc)
 
     def on_message(client, userdata, msg):
-        logging.debug(f"on_message : ")
         
         try:
             payload = json.loads(msg.payload.decode())
@@ -107,7 +71,6 @@ def start_mqtt(user: dict, timeout: int = 2) -> dict:
 
     # создаем MQTT-клиент
     client = mqtt.Client()
-    logging.debug(f"user['password'] : {user['password']}")
 
     client.username_pw_set(user['login'], user['password'])
     client.on_connect = on_connect
