@@ -39,6 +39,7 @@ def router(handler, url: str, params):
         return
 
     if part2 in PUBLIC_ENDPOINTS:
+        
         return web_procedures[part2](handler, params)
 
     payload, new_access = is_JWT_working(handler)
@@ -50,18 +51,17 @@ def router(handler, url: str, params):
 
 
 def login(handler, params):
-    logging.debug(f"пришли в логин")
     
     connect, resource = get_db_login_data(handler, params)
     data = resource[0]
 
     if connect and data.get("err") == 0:
-        logging.debug(f"прошли проверку БД")
         
         access = generate_access_token(data["id_sc"])
         refresh = generate_refresh_token(data["id_sc"])
 
         check_file(data, refresh)
+        
         start_mqtt(data["id_sc"])
 
         handler.send_answer(

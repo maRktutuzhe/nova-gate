@@ -14,6 +14,9 @@ DEVICE_MODELS = {
     "ablog": "ab-log.ru",
 }
 
+BASE_DIR = os.path.dirname(__file__)  # папка app
+USERS_DIR = os.path.join(BASE_DIR, "users")
+
 def normalize_mqtt(data):
     rows = []
     print("data", data)
@@ -103,7 +106,8 @@ def in_range(value, segment):
 def check_file(db_data, refresh): 
     data = { "user_id": db_data['id_sc'], "refresh": refresh, "mqtt_login": db_data['mqtt_login'], "mqtt_pass": db_data['mqtt_pass'] } 
     loaded_data = {} 
-    if os.path.exists(f"users/{db_data['id_sc']}.json"): 
-        with open(f"users/{db_data['id_sc']}.json", 'w', encoding='utf-8') as file: json.dump(data, file, ensure_ascii=False, indent=4) 
-    else: 
-        with open(f"users/{db_data['id_sc']}.json", 'a', encoding='utf-8') as file: json.dump(data, file, ensure_ascii=False, indent=4)
+    os.makedirs(USERS_DIR, exist_ok=True)  # чтобы папка точно была
+
+    user_file = os.path.join(USERS_DIR, f"{db_data['id_sc']}.json")
+    with open(user_file, 'w', encoding='utf-8') as file: 
+        json.dump(data, file, ensure_ascii=False, indent=4)
