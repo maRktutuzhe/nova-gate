@@ -405,49 +405,6 @@ def in_range(value, segment):
         upper_ok = value <= upper
     return lower_ok and upper_ok
 
-
-def connect(handler, params, payload=None, new_access=None):
-    
-    # Прямо прописанные параметры БД
-    db_path = "10.129.0.47:/home/michael/tb/TEST_SC.FDB"   # путь к базе
-    db_user = "SYSDBA"
-    db_password = "masterkey"
-    db_charset = "UTF8"
-    
-    get_config()
-    
-    try:
-        
-        # Подключаемся к базе
-        conn = fdb.connect(
-            dsn=db_path,
-            user=db_user,
-            password=db_password,
-            charset=db_charset
-        )
-        
-    except Exception as e:
-        
-        return handler.send_answer(500, {"error_code": 1, "message": f"Ошибка подключения к БД: {e}"})
-    
-    try:
-        # SQL для авторизации (можно менять на любую процедуру)
-        login = params.get("login", "test_user")
-        password = params.get("pass", "secret")
-        sql = "SELECT * FROM w3_auth_mon('%s', '%s')" % ('client0', 'client0112233')
-        
-        cur = conn.cursor()
-        cur.execute(sql)
-        # Формируем результат в виде списка словарей
-        result = [dict(zip([d[0].lower() for d in cur.description], row)) for row in cur.fetchall()]
-    except Exception as e:
-        return handler.send_answer(500, {"error_code": 1, "message": f"Ошибка выполнения SQL: {e}"})
-    finally:
-        conn.close()
-    
-    # Возвращаем результат через Gate
-    return handler.send_answer(200, {"error_code": 0, "data": result})
-
 def logout(handler, params):
     print('DEL COOKIE')
     handler.send_answer(
@@ -465,7 +422,6 @@ def logout(handler, params):
 web_procedures = {
     'login': login,
     'get_mqtt': get_mqtt,
-    'connect': connect,
     'logout': logout
 }
 
