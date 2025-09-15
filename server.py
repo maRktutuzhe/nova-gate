@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import lib
-import mqtt_client
+# import mqtt_client
 import web
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
@@ -67,11 +67,11 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     BEARER_PREFIX = "Bearer "
     JWT_SECTION_PREFIX = "jwt_"
 
-    def mqtt_last(self, project_name: str):
-        if mqtt_client.last_message is None:
-            self.send_answer(200, {"error_code": 1, "message": "no data yet"})
-        else:
-            self.send_answer(200, {"error_code": 0, "message": mqtt_client.last_message})
+    # def mqtt_last(self, project_name: str):
+    #     if mqtt_client.last_message is None:
+    #         self.send_answer(200, {"error_code": 1, "message": "no data yet"})
+    #     else:
+    #         self.send_answer(200, {"error_code": 0, "message": mqtt_client.last_message})
     
     def is_web(self, path_url: str) -> bool:
         url_prefix = lib.config["settings"]["url_prefix"]
