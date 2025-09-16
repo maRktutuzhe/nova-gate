@@ -1,6 +1,6 @@
 {
-    "user_id": 1,
-    "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE3NTc5MzUwNjIsImlhdCI6MTc1NzMzMDI2MiwidHlwZSI6InJlZnJlc2gifQ.qmvRpwgo8SCi_9QQUdD9QwxtqGp82oKbs_7wbxvEAjw",
+    "user_id": 27,
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoyNywiZXhwIjoxNzU4NjE0MDIwLCJpYXQiOjE3NTgwMDkyMjAsInR5cGUiOiJyZWZyZXNoIn0.uWuff4YejsJakcxvj9_ugxCEFkZQFZgF91A16cp810Y",
     "mqtt_login": "bolotina",
-    "mqtt_pass": "bolotina112233"
+    "mqtt_pass": "bolotina112234"
 }
