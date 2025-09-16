@@ -1,0 +1,6 @@
+{
+    "user_id": 2,
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoyLCJleHAiOjE3NTc1MDU2MjksImlhdCI6MTc1NjkwMDgyOSwidHlwZSI6InJlZnJlc2gifQ.5qrvL3481oEKMckO39C334eU-ucV311QfqSx8__1Jug",
+    "mqtt_login": "client0",
+    "mqtt_pass": "client0112233"
+}
