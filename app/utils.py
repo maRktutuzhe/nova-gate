@@ -24,34 +24,30 @@ def normalize_mqtt(data):
     for path, values in data.items():
         parts = path.split("/")
         _, client, toid, rmid, devid, devtype, devmodel, status = parts
+        
+
+        # row["state"] = get_state(devtype, devmodel, values)
+        dev_info, params = get_state(devtype, devmodel, values)
+
         row = {
             "client": client.removeprefix("client"),
             "point": toid.removeprefix("to"),
             "workplace": rmid.removeprefix("rm"),
             "dev_id": devid.removeprefix("dev"),
-            "dev_name": DEVICE_TYPES.get(devtype, devtype),
-            "dev_model": DEVICE_MODELS.get(devmodel, devmodel),
-            "parameter_name": status,
-            "parameter_kod": "",
-            "comment": ""
+            "dev_name": dev_info['type'],
+            "dev_model":dev_info['model'],
+            "parameter_name": params['param_name'],
+            "state": params['state'],
+            "parameter_kod": params['param_kod'],
+            "comment": values.get("descr", "")
         }
-        if devtype == "kkm":
-            row["parameter_name"] = "Статус"
-            row["parameter_kod"] = values.get("kod", "")
-            row["comment"] = values.get("descr", "")
-        elif devtype == "sclife":
-            if "sctemp" in values:
-                row["parameter_name"] = "Температура платы"
-                row["parameter_kod"] = values["sctemp"]
-
-        row["state"] = get_state(devtype, devmodel, row["parameter_kod"])
 
         rows.append(row)
     return rows
 
-def get_state(devtype, devmodel, kod):
+def get_state(devtype, devmodel, values):
     base = os.path.dirname(__file__)
-    path = os.path.join(base, "..", "devsettings.json")  # если devsettings.json в корне
+    path = os.path.join(base, "..", "devsettings.json")
     path = os.path.abspath(path)
     with open(path, 'r', encoding='utf-8') as file:
 
@@ -65,7 +61,22 @@ def get_state(devtype, devmodel, kod):
                 settings = all_settings['devices'][devtype][devmodel]
                 first_param_name = next(iter(settings))
                 range = settings[first_param_name]
-                return check_range(range, kod)
+                value = values.get(first_param_name, '')
+                print('first_param_name', first_param_name)
+                print('values', values)
+                print('value', value)
+                dev_info = {
+                    'type': settings['descrdev']['devtype'],
+                    'model': settings['descrdev']['devmodel']
+                }
+                print('valusettings[first_param_name]e', settings[first_param_name])
+     
+                params = {
+                    'state': check_range(range, value),
+                    'param_name': settings[first_param_name]['parname'],
+                    'param_kod': value
+                }
+                return dev_info, params
 
 def check_range(ranges, kod):
 
@@ -106,7 +117,7 @@ def in_range(value, segment):
 def check_file(db_data, refresh): 
     data = { "user_id": db_data['id_sc'], "refresh": refresh, "mqtt_login": db_data['mqtt_login'], "mqtt_pass": db_data['mqtt_pass'] } 
     loaded_data = {} 
-    os.makedirs(USERS_DIR, exist_ok=True)  # чтобы папка точно была
+    os.makedirs(USERS_DIR, exist_ok=True)
 
     user_file = os.path.join(USERS_DIR, f"{db_data['id_sc']}.json")
     with open(user_file, 'w', encoding='utf-8') as file: 
