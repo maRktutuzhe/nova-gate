@@ -64,25 +64,17 @@ def get_client(client, point):
     client_info = {}
     client_info['name'] = client.removeprefix("client")
     client_info['point'] = point.removeprefix("to")
-    print("********КЛИЕНТ************", client)
-    print("********ТОЧКА************", point)
 
     with open(path, 'r', encoding='utf-8') as file:
 
         all_settings = json.load(file)
-        print("зашли в файл", all_settings)
         if not all_settings['clients'].get(client):
             print("не нашли клиента в файле()", client)
         else:
-            print("клиент есть", all_settings['clients'].get(client))
-            print("точки клиента", all_settings['clients'][client]['to'])
-
             client_info['name'] = all_settings['clients'][client].get('name')
             if not all_settings['clients'][client]['to'].get(point):
                 print("не нашли точку обслуживания в файле()", point)
             else:
-                print("точка есть", all_settings['clients'][client]['to'][point])
-
                 client_info['point'] = all_settings['clients'][client]['to'][point].get('name')
                
     return client_info
@@ -93,12 +85,22 @@ def get_state(devtype, devmodel, values):
     base = os.path.dirname(__file__)
     path = os.path.join(base, "..", "devsettings.json")
     path = os.path.abspath(path)
+    dev_info = {
+        'type': devtype,
+        'model': devmodel
+    }
+    params = {
+        'state': 'critical',
+        'param_name': '',
+        'param_kod': ''
+    }
     with open(path, 'r', encoding='utf-8') as file:
 
         all_settings = json.load(file)
         if not all_settings['devices'].get(devtype):
             print("не нашли устройство в файле()", devtype)
         else:
+            dev_info['type'] = all_settings['devices'][devtype]
             if not all_settings['devices'][devtype].get(devmodel):
                 print("не нашли модель в файле()", devmodel)
             else:
@@ -116,7 +118,7 @@ def get_state(devtype, devmodel, values):
                     'param_name': settings[first_param_name]['parname'],
                     'param_kod': value
                 }
-                return dev_info, params
+    return dev_info, params
 
 def check_range(ranges, kod):
     logging.debug(f"start check_range")
