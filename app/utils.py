@@ -1,5 +1,13 @@
 import json
 import os
+import logging
+
+logging.basicConfig(
+    filename="server_debug.log",
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 DEVICE_TYPES = {
     "kkm": "ККМ",
@@ -18,6 +26,8 @@ BASE_DIR = os.path.dirname(__file__)  # папка app
 USERS_DIR = os.path.join(BASE_DIR, "users")
 
 def normalize_mqtt(data):
+    logging.debug(f"start normalize_mqtt")
+
     rows = []
     print("data", data)
 
@@ -28,10 +38,11 @@ def normalize_mqtt(data):
 
         # row["state"] = get_state(devtype, devmodel, values)
         dev_info, params = get_state(devtype, devmodel, values)
+        client_info = get_client(client, toid)
 
         row = {
-            "client": client.removeprefix("client"),
-            "point": toid.removeprefix("to"),
+            "client": client_info['name'],
+            "point": client_info['point'],
             "workplace": rmid.removeprefix("rm"),
             "dev_id": devid.removeprefix("dev"),
             "dev_name": dev_info['type'],
@@ -45,7 +56,40 @@ def normalize_mqtt(data):
         rows.append(row)
     return rows
 
+def get_client(client, point):
+
+    base = os.path.dirname(__file__)
+    path = os.path.join(base, "..", "clients.json")
+    path = os.path.abspath(path)
+    client_info = {}
+    client_info['name'] = client.removeprefix("client")
+    client_info['point'] = point.removeprefix("to")
+    print("********КЛИЕНТ************", client)
+    print("********ТОЧКА************", point)
+
+    with open(path, 'r', encoding='utf-8') as file:
+
+        all_settings = json.load(file)
+        print("зашли в файл", all_settings)
+        if not all_settings['clients'].get(client):
+            print("не нашли клиента в файле()", client)
+        else:
+            print("клиент есть", all_settings['clients'].get(client))
+            print("точки клиента", all_settings['clients'][client]['to'])
+
+            client_info['name'] = all_settings['clients'][client].get('name')
+            if not all_settings['clients'][client]['to'].get(point):
+                print("не нашли точку обслуживания в файле()", point)
+            else:
+                print("точка есть", all_settings['clients'][client]['to'][point])
+
+                client_info['point'] = all_settings['clients'][client]['to'][point].get('name')
+               
+    return client_info
+
 def get_state(devtype, devmodel, values):
+    logging.debug(f"start get_state")
+
     base = os.path.dirname(__file__)
     path = os.path.join(base, "..", "devsettings.json")
     path = os.path.abspath(path)
@@ -62,14 +106,10 @@ def get_state(devtype, devmodel, values):
                 first_param_name = next(iter(settings))
                 range = settings[first_param_name]
                 value = values.get(first_param_name, '')
-                print('first_param_name', first_param_name)
-                print('values', values)
-                print('value', value)
                 dev_info = {
                     'type': settings['descrdev']['devtype'],
                     'model': settings['descrdev']['devmodel']
                 }
-                print('valusettings[first_param_name]e', settings[first_param_name])
      
                 params = {
                     'state': check_range(range, value),
@@ -79,6 +119,7 @@ def get_state(devtype, devmodel, values):
                 return dev_info, params
 
 def check_range(ranges, kod):
+    logging.debug(f"start check_range")
 
     for state in ["critical", "warning", "normal"]:
         if state not in ranges:
@@ -89,6 +130,7 @@ def check_range(ranges, kod):
     return "critical"
 
 def in_range(value, segment):
+    logging.debug(f"start in_range")
 
 
     try:
@@ -115,6 +157,8 @@ def in_range(value, segment):
     return lower_ok and upper_ok
 
 def check_file(db_data, refresh): 
+    logging.debug(f"start check_file")
+
     data = { "user_id": db_data['id_sc'], "refresh": refresh, "mqtt_login": db_data['mqtt_login'], "mqtt_pass": db_data['mqtt_pass'] } 
     loaded_data = {} 
     os.makedirs(USERS_DIR, exist_ok=True)
