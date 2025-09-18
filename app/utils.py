@@ -26,7 +26,6 @@ BASE_DIR = os.path.dirname(__file__)  # папка app
 USERS_DIR = os.path.join(BASE_DIR, "users")
 
 def normalize_mqtt(data):
-    logging.debug(f"start normalize_mqtt")
 
     rows = []
     print("data", data)
@@ -79,7 +78,6 @@ def get_client(client, point):
     return client_info
 
 def get_state(devtype, devmodel, values):
-    logging.debug(f"start get_state")
 
     base = os.path.dirname(__file__)
     path = os.path.join(base, "..", "devsettings.json")
@@ -125,7 +123,6 @@ def get_state(devtype, devmodel, values):
     return dev_info, params
 
 def check_range(ranges, kod):
-    logging.debug(f"start check_range")
 
     for state in ["critical", "warning", "normal"]:
         if state not in ranges:
@@ -136,8 +133,6 @@ def check_range(ranges, kod):
     return "critical"
 
 def in_range(value, segment):
-    logging.debug(f"start in_range")
-
 
     try:
         value = int(value)
@@ -163,7 +158,6 @@ def in_range(value, segment):
     return lower_ok and upper_ok
 
 def check_file(db_data, refresh): 
-    logging.debug(f"start check_file")
 
     data = { "user_id": db_data['id_sc'], "refresh": refresh, "mqtt_login": db_data['mqtt_login'], "mqtt_pass": db_data['mqtt_pass'] } 
     loaded_data = {} 

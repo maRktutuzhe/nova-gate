@@ -51,14 +51,14 @@ def router(handler, url: str, params):
 
 
 def login(handler, params):
-    # connect, resource = get_db_login_data(handler, params)
-    # data = resource[0]
+    connect, resource = get_db_login_data(handler, params)
+    data = resource[0]
 
-    # if connect and data.get("err") == 0:
-        data = {}
-        data["id_sc"] = 27
-        data["mqtt_login"] = 'bolotina'
-        data["mqtt_pass"] = 'bolotina112234'
+    if connect and data.get("err") == 0:
+        # data = {}
+        # data["id_sc"] = 27
+        # data["mqtt_login"] = 'bolotina'
+        # data["mqtt_pass"] = 'bolotina112234'
     
         access = generate_access_token(data["id_sc"])
         refresh = generate_refresh_token(data["id_sc"])
@@ -81,6 +81,14 @@ def login(handler, params):
                 ("Access-Control-Allow-Headers", "Content-Type"),
                 ("Access-Control-Allow-Methods", "GET, POST, OPTIONS"),
             ],
+        )
+    else:
+        handler.send_answer(
+            status=401,
+            js={
+                "error_code": data.get("err"),
+                "message": data.get("error_message"),
+            }
         )
 
 
