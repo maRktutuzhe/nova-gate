@@ -36,7 +36,6 @@ def normalize_mqtt(data):
         _, client, toid, rmid, devid, devtype, devmodel, status = parts
         
 
-        # row["state"] = get_state(devtype, devmodel, values)
         dev_info, params = get_state(devtype, devmodel, values)
         client_info = get_client(client, toid)
 
@@ -50,7 +49,7 @@ def normalize_mqtt(data):
             "parameter_name": params['param_name'],
             "state": params['state'],
             "parameter_kod": params['param_kod'],
-            "comment": values.get("descr", "")
+            "comment": params['comment']
         }
 
         rows.append(row)
@@ -92,7 +91,8 @@ def get_state(devtype, devmodel, values):
     params = {
         'state': 'critical',
         'param_name': '',
-        'param_kod': ''
+        'param_kod': '',
+        'comment': ''
     }
     with open(path, 'r', encoding='utf-8') as file:
 
@@ -100,7 +100,6 @@ def get_state(devtype, devmodel, values):
         if not all_settings['devices'].get(devtype):
             print("не нашли устройство в файле()", devtype)
         else:
-            dev_info['type'] = all_settings['devices'][devtype]
             if not all_settings['devices'][devtype].get(devmodel):
                 print("не нашли модель в файле()", devmodel)
             else:
@@ -116,8 +115,13 @@ def get_state(devtype, devmodel, values):
                 params = {
                     'state': check_range(range, value),
                     'param_name': settings[first_param_name]['parname'],
-                    'param_kod': value
+                    'param_kod': value,
+                    'comment': ''
                 }
+
+                if range.get('descrstat') and range['descrstat'].get(str(value)):
+                    params['comment'] = range['descrstat'][str(value)]
+
     return dev_info, params
 
 def check_range(ranges, kod):
