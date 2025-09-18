@@ -51,7 +51,66 @@
               "devmodel": "АТОЛ" 
             } 
  
+      } ,
+      "shtrih": { 
+        "kod": { 
+          "critical": [ 
+            {"lower": null, "upper": -1},    
+            {"lower": 6, "upper": null}    
+          ], 
+          "warning": [ 
+            {"lower": 1, "upper": 2},     
+            {"lower": 5, "upper": 6}  
+          ], 
+          "normal": [ 
+            {"lower": 0, "upper": 0}  
+          ], 
+          "descrstat": { 
+            "0": "Ошибок нет", 
+            "1": "Смена превысила 24 часа", 
+            "2": "Нет чековой ленты" 
+          }, 
+          
+          "parname":"Статус ККМ" 
+        }, 
+        "descrdev": { 
+              "devtype": "ККМ", 
+              "devmodel": "Штрих-М" 
+            } 
+ 
       } 
     } 
+      , 
+    "terminal": { 
+      "sber": { 
+        "kod": { 
+          "critical": [ 
+            {"lower": null, "upper": -1},    
+            {"lower": 6, "upper": null}    
+          ], 
+          "warning": [ 
+            {"lower": 1, "upper": 2},     
+            {"lower": 5, "upper": 6}  
+          ], 
+          "normal": [ 
+            {"lower": 0, "upper": 0}  
+          ], 
+          "descrstat": { 
+            "0": "Ошибок нет", 
+            "1": "Смена превысила 24 часа", 
+            "2": "Нет чековой ленты" 
+          }, 
+          
+          "parname":"Статус терминала Сбербанк" 
+        }, 
+        "descrdev": { 
+              "devtype": "Терминал", 
+              "devmodel": "Сбербанк" 
+            } 
+ 
+      } 
+    } 
+  
   } 
+
 }
