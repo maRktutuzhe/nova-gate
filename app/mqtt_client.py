@@ -1,8 +1,7 @@
 import paho.mqtt.client as mqtt
-import jwt
 import json
 import time
-
+import configparser
 import logging
 
 logging.basicConfig(
@@ -12,42 +11,11 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-last_message = None
-
-def fetch_last_messages(login, password, timeout=2):
-    """
-    Подключается к MQTT от имени пользователя и возвращает все доступные ему retained-сообщения.
-    """
-    messages = {}
-
-    def on_connect(client, userdata, flags, rc):
-        if rc == 0:
-            # Подписываемся на все топики
-            client.subscribe("#")
-        else:
-            print("Ошибка подключения:", rc)
-
-    def on_message(client, userdata, msg):
-        try:
-            payload = json.loads(msg.payload.decode())
-        except Exception:
-            payload = msg.payload.decode()
-        messages[msg.topic] = payload
-
-    client = mqtt.Client()
-    client.username_pw_set(login, password)
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-    client.connect("your-mqtt-host", 1883, 60)
-    client.loop_start()
-
-    time.sleep(timeout)  # ждём retained-сообщения
-
-    client.loop_stop()
-    client.disconnect()
-
-    return messages
+config = configparser.ConfigParser()
+config.read("mqtt.ini")
+MQTT_HOST = config["MQTT"]["host"]
+MQTT_PORT = int(config["MQTT"]["port"])
+MQTT_KEEPALIVE = int(config["MQTT"]["keepalive"])
 
 def start_mqtt(user: dict, timeout: int = 2) -> dict:
 
@@ -76,7 +44,7 @@ def start_mqtt(user: dict, timeout: int = 2) -> dict:
     client.on_connect = on_connect
     client.on_message = on_message
 
-    client.connect("89.169.141.81", 1883, 60)
+    client.connect(MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE)
     client.loop_start()
 
     # ждём, пока брокер отдаст retained-сообщения
