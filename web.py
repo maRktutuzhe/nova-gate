@@ -1,5 +1,12 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import logging
+import json
+from urllib import request as urllib_request
+from urllib.error import URLError
+
+
+
+PY_SERVER = "http://158.160.35.144:5000"
 
 # авторизация (jwt) — в auth.py
 from app.auth import (
@@ -140,10 +147,65 @@ def logout(handler, params):
     )
 
 
+def proxy_post(handler, params, path):
+    try:
+        data = json.dumps(params).encode('utf-8')
+        req = urllib_request.Request(PY_SERVER + "/" + path, data=data, headers={'Content-Type': 'application/json'})
+        with urllib_request.urlopen(req, timeout=5) as resp:
+            resp_data = resp.read()
+            try:
+                js = json.loads(resp_data)
+            except:
+                js = {"message": resp_data.decode()}
+            handler.send_answer(resp.getcode(), js)
+    except URLError as e:
+        handler.send_answer(500, {"error_code": 1, "message": str(e)})
+
+def proxy_get(handler, params, path):
+    logging.debug(f"proxy_get called with path: {path}, params: {params}")
+    try:
+        url = PY_SERVER + "/" + path
+        logging.debug(f"Opening URL: {url}")
+        req = urllib_request.Request(url, headers={'Content-Type': 'application/json'})
+
+        with urllib_request.urlopen(req, timeout=5) as resp:
+            logging.debug(f"Response opened, status: {resp.getcode()}")
+            resp_data = resp.read()
+            logging.debug(f"Raw response data: {resp_data}")
+            try:
+                js = json.loads(resp_data)
+                logging.debug(f"JSON parsed: {js}")
+            except Exception as e:
+                logging.debug(f"JSON parse error: {e}")
+                js = {"message": resp_data.decode()}
+            handler.send_answer(resp.getcode(), js)
+            logging.debug("Response sent to client")
+
+    except URLError as e:
+        logging.debug(f"URLError: {e}")
+        handler.send_answer(500, {"error_code": 1, "message": str(e)})
+
+
+def users_list(handler, params, payload, new_access): 
+    return proxy_post(handler, params, "users/list") 
+    
+def change_password(handler, params, payload, new_access):
+    return proxy_post(handler, params, "users/change_password")
+
+def view_acl(handler, params, payload, new_access):
+    username = 'bolotina'
+    if not username:
+        handler.send_answer(400, {"error_code": 1, "message": "username не указан"})
+        return
+    return proxy_get(handler, params, f"acl/view/{username}")
+
 web_procedures = {
     "login": login,
     "get_mqtt": get_mqtt,
     "logout": logout,
+    "users_list": users_list,
+    "change_password": change_password,
+    "view_acl": view_acl,
 }
 
 PUBLIC_ENDPOINTS = {"login", "logout"}
